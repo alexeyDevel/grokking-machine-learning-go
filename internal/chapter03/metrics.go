@@ -6,6 +6,7 @@ import (
 )
 
 // RMSE считает корень из средней квадратичной ошибки между ответами и предсказаниями.
+// RMSE calculates the root mean square error between labels and predictions.
 func RMSE(labels, predictions []float64) (float64, error) {
 	if len(labels) == 0 {
 		return 0, errors.New("labels must not be empty")

@@ -6,6 +6,7 @@ import (
 )
 
 // TrainingResult хранит обученную модель и историю ошибки по эпохам.
+// TrainingResult stores the trained model and the error history by epoch.
 type TrainingResult struct {
 	Model  Model
 	Errors []float64
@@ -13,6 +14,8 @@ type TrainingResult struct {
 
 // LinearRegression обучает модель линейной регрессии через stochastic gradient descent.
 // На каждой эпохе она выбирает случайную точку и применяет SquareTrick.
+// LinearRegression trains a linear regression model with stochastic gradient descent.
+// On each epoch, it picks a random point and applies SquareTrick.
 func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *rand.Rand) (TrainingResult, error) {
 	if len(dataset.Features) == 0 {
 		return TrainingResult{}, errors.New("features must not be empty")

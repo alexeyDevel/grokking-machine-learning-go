@@ -4,6 +4,8 @@ import "errors"
 
 // OrdinaryLeastSquares находит оптимальную прямую по закрытой формуле.
 // Это аналог результата, который notebook получает через scikit-learn LinearRegression.
+// OrdinaryLeastSquares finds the optimal line with a closed-form formula.
+// This is the Go equivalent of the result produced by scikit-learn LinearRegression in the notebook.
 func OrdinaryLeastSquares(dataset Dataset) (Model, error) {
 	if len(dataset.Features) == 0 {
 		return Model{}, errors.New("features must not be empty")
