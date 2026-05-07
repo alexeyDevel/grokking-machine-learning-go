@@ -8,27 +8,38 @@ import (
 )
 
 func main() {
+	// dataset - маленькая таблица из главы: комнаты -> цены.
+	// dataset is the small chapter table: rooms -> prices.
 	dataset := chapter03.HousingDataset()
 
+	// trained - модель, обученная постепенными случайными шагами.
+	// trained is a model trained by small random update steps.
 	trained, err := chapter03.LinearRegression(
 		dataset,
-		0.01,
-		10000,
-		rand.New(rand.NewSource(0)),
+		0.01,                        // learningRate: размер одного шага обучения / one training step size.
+		10000,                       // epochs: сколько раз обновлять модель / how many times to update the model.
+		rand.New(rand.NewSource(0)), // rng: фиксированный генератор случайных чисел / fixed random number generator.
 	)
 	if err != nil {
 		panic(err)
 	}
 
+	// exact - модель, найденная напрямую по формуле без случайного обучения.
+	// exact is a model found directly by formula, without random training.
 	exact, err := chapter03.OrdinaryLeastSquares(dataset)
 	if err != nil {
 		panic(err)
 	}
 
+	// trainedRMSE - ошибка модели, обученной через SquareTrick.
+	// trainedRMSE is the error of the model trained with SquareTrick.
 	trainedRMSE, err := chapter03.RMSE(dataset.Labels, trained.Model.PredictAll(dataset.Features))
 	if err != nil {
 		panic(err)
 	}
+
+	// exactRMSE - ошибка точной модели OrdinaryLeastSquares.
+	// exactRMSE is the error of the exact OrdinaryLeastSquares model.
 	exactRMSE, err := chapter03.RMSE(dataset.Labels, exact.PredictAll(dataset.Features))
 	if err != nil {
 		panic(err)
