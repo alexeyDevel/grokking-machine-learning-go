@@ -29,7 +29,7 @@ func TestLinearRegressionWithSquareTrick(t *testing.T) {
 	}
 
 	initialError := result.Errors[0]
-	finalError, err := RMSE(dataset.Labels, result.Model.PredictAll(dataset.Features))
+	finalError, err := RMSE(dataset.ActualPrices, result.Model.PredictAll(dataset.RoomCounts))
 	if err != nil {
 		t.Fatal(err)
 	}

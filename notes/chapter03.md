@@ -25,13 +25,13 @@ go run ./cmd/chapter03
 Допустим, настоящие цены такие:
 
 ```text
-labels = [155, 197, 244]
+actualPrices = [155, 197, 244]
 ```
 
 А модель предсказала такие цены:
 
 ```text
-predictions = [150, 200, 250]
+predictedPrices = [150, 200, 250]
 ```
 
 Сначала считаем ошибку для каждой точки:
@@ -89,13 +89,13 @@ sqrt(23.333...) ≈ 4.83
 В коде это выглядит так:
 
 ```go
-diff := labels[i] - predictions[i]
-sumSquares += diff * diff
-return math.Sqrt(sumSquares / float64(len(labels))), nil
+predictionError := actualPrices[i] - predictedPrices[i]
+sumSquares += predictionError * predictionError
+return math.Sqrt(sumSquares / float64(len(actualPrices))), nil
 ```
 
-- `diff` - ошибка на одной точке.
-- `diff * diff` - квадрат ошибки.
+- `predictionError` - ошибка на одной точке.
+- `predictionError * predictionError` - квадрат ошибки.
 - `sumSquares` - сумма квадратов ошибок.
-- `/ len(labels)` - среднее значение.
+- `/ len(actualPrices)` - среднее значение.
 - `math.Sqrt(...)` - корень, чтобы вернуться к обычному масштабу ошибки.

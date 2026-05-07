@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	// dataset - маленькая таблица из главы: комнаты -> цены.
+	// dataset - маленькая таблица из главы: количество комнат -> цены.
 	// dataset is the small chapter table: rooms -> prices.
 	dataset := chapter03.HousingDataset()
 
@@ -33,21 +33,21 @@ func main() {
 
 	// trainedRMSE - ошибка модели, обученной через SquareTrick.
 	// trainedRMSE is the error of the model trained with SquareTrick.
-	trainedRMSE, err := chapter03.RMSE(dataset.Labels, trained.Model.PredictAll(dataset.Features))
+	trainedRMSE, err := chapter03.RMSE(dataset.ActualPrices, trained.Model.PredictAll(dataset.RoomCounts))
 	if err != nil {
 		panic(err)
 	}
 
 	// exactRMSE - ошибка точной модели OrdinaryLeastSquares.
 	// exactRMSE is the error of the exact OrdinaryLeastSquares model.
-	exactRMSE, err := chapter03.RMSE(dataset.Labels, exact.PredictAll(dataset.Features))
+	exactRMSE, err := chapter03.RMSE(dataset.ActualPrices, exact.PredictAll(dataset.RoomCounts))
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Chapter 3: Linear regression")
-	fmt.Printf("features: %.0f\n", dataset.Features)
-	fmt.Printf("labels:   %.0f\n\n", dataset.Labels)
+	fmt.Printf("room counts:  %.0f\n", dataset.RoomCounts)
+	fmt.Printf("actual prices: %.0f\n\n", dataset.ActualPrices)
 
 	fmt.Println("Square trick SGD")
 	fmt.Printf("price per room: %.6f\n", trained.Model.PricePerRoom)

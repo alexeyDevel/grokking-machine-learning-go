@@ -22,11 +22,11 @@ type TrainingResult struct {
 // LinearRegression trains a linear regression model with stochastic gradient descent.
 // On each epoch, it picks a random point and applies SquareTrick.
 func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *rand.Rand) (TrainingResult, error) {
-	if len(dataset.Features) == 0 {
-		return TrainingResult{}, errors.New("features must not be empty")
+	if len(dataset.RoomCounts) == 0 {
+		return TrainingResult{}, errors.New("room counts must not be empty")
 	}
-	if len(dataset.Features) != len(dataset.Labels) {
-		return TrainingResult{}, errors.New("features and labels must have the same length")
+	if len(dataset.RoomCounts) != len(dataset.ActualPrices) {
+		return TrainingResult{}, errors.New("room counts and actual prices must have the same length")
 	}
 	if epochs < 0 {
 		return TrainingResult{}, errors.New("epochs must not be negative")
@@ -54,22 +54,22 @@ func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *ra
 	for range epochs {
 		// Считаем ошибку всей модели на всех точках до очередного обновления.
 		// Calculate the model error on all points before the next update.
-		errorValue, err := RMSE(dataset.Labels, model.PredictAll(dataset.Features))
+		currentRMSE, err := RMSE(dataset.ActualPrices, model.PredictAll(dataset.RoomCounts))
 		if err != nil {
 			return TrainingResult{}, err
 		}
-		errorsByEpoch = append(errorsByEpoch, errorValue)
+		errorsByEpoch = append(errorsByEpoch, currentRMSE)
 
 		// i - случайный индекс точки из датасета. Для 6 точек это число от 0 до 5.
 		// i is a random dataset point index. For 6 points, it is a number from 0 to 5.
-		i := rng.Intn(len(dataset.Features))
+		i := rng.Intn(len(dataset.RoomCounts))
 
 		// Обновляем модель только по одной случайной точке: это и есть stochastic gradient descent.
 		// Update the model using only one random point: this is stochastic gradient descent.
 		model = SquareTrick(
 			model,
-			dataset.Features[i],
-			dataset.Labels[i],
+			dataset.RoomCounts[i],
+			dataset.ActualPrices[i],
 			learningRate,
 		)
 	}

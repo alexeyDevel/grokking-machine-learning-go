@@ -7,52 +7,52 @@ import "errors"
 // OrdinaryLeastSquares finds the optimal line with a closed-form formula.
 // This is the Go equivalent of the result produced by scikit-learn LinearRegression in the notebook.
 func OrdinaryLeastSquares(dataset Dataset) (Model, error) {
-	if len(dataset.Features) == 0 {
-		return Model{}, errors.New("features must not be empty")
+	if len(dataset.RoomCounts) == 0 {
+		return Model{}, errors.New("room counts must not be empty")
 	}
-	if len(dataset.Features) != len(dataset.Labels) {
-		return Model{}, errors.New("features and labels must have the same length")
+	if len(dataset.RoomCounts) != len(dataset.ActualPrices) {
+		return Model{}, errors.New("room counts and actual prices must have the same length")
 	}
 
 	// sumX и sumY нужны, чтобы найти средние значения признаков и цен.
 	// sumX and sumY are used to find the average feature value and average price.
 	var sumX, sumY float64
-	for i := range dataset.Features {
-		sumX += dataset.Features[i]
-		sumY += dataset.Labels[i]
+	for i := range dataset.RoomCounts {
+		sumX += dataset.RoomCounts[i]
+		sumY += dataset.ActualPrices[i]
 	}
 
 	// n - количество точек в датасете.
 	// n is the number of points in the dataset.
-	n := float64(len(dataset.Features))
+	n := float64(len(dataset.RoomCounts))
 
-	// meanX - среднее количество комнат, meanY - средняя цена.
-	// meanX is the average number of rooms, meanY is the average price.
-	meanX := sumX / n
-	meanY := sumY / n
+	// meanRoomCount - среднее количество комнат, meanActualPrice - средняя цена.
+	// meanRoomCount is the average number of rooms, meanActualPrice is the average price.
+	meanRoomCount := sumX / n
+	meanActualPrice := sumY / n
 
 	// numerator и denominator - части формулы для наклона прямой.
 	// numerator and denominator are parts of the formula for the line slope.
 	var numerator, denominator float64
-	for i := range dataset.Features {
-		// xDiff показывает, насколько текущий x отличается от среднего x.
-		// xDiff shows how far the current x is from the average x.
-		xDiff := dataset.Features[i] - meanX
+	for i := range dataset.RoomCounts {
+		// roomCountDiff показывает, насколько текущее количество комнат отличается от среднего.
+		// roomCountDiff shows how far the current rooms count is from the average rooms count.
+		roomCountDiff := dataset.RoomCounts[i] - meanRoomCount
 
-		// yDiff показывает, насколько текущая цена отличается от средней цены.
-		// yDiff shows how far the current price is from the average price.
-		yDiff := dataset.Labels[i] - meanY
+		// actualPriceDiff показывает, насколько текущая цена отличается от средней цены.
+		// actualPriceDiff shows how far the current price is from the average price.
+		actualPriceDiff := dataset.ActualPrices[i] - meanActualPrice
 
 		// numerator накапливает совместное изменение x и y.
 		// numerator accumulates how x and y change together.
-		numerator += xDiff * yDiff
+		numerator += roomCountDiff * actualPriceDiff
 
 		// denominator накапливает разброс x относительно среднего.
 		// denominator accumulates the spread of x around its average.
-		denominator += xDiff * xDiff
+		denominator += roomCountDiff * roomCountDiff
 	}
 	if denominator == 0 {
-		return Model{}, errors.New("cannot fit a line when all features are equal")
+		return Model{}, errors.New("cannot fit a line when all room counts are equal")
 	}
 
 	// pricePerRoom - найденный наклон прямой: ожидаемая прибавка цены за одну комнату.
@@ -61,8 +61,8 @@ func OrdinaryLeastSquares(dataset Dataset) (Model, error) {
 	return Model{
 		PricePerRoom: pricePerRoom,
 
-		// BasePrice выбирается так, чтобы прямая проходила через точку (meanX, meanY).
-		// BasePrice is chosen so the line passes through the point (meanX, meanY).
-		BasePrice: meanY - pricePerRoom*meanX,
+		// BasePrice выбирается так, чтобы прямая проходила через точку (meanRoomCount, meanActualPrice).
+		// BasePrice is chosen so the line passes through the point (meanRoomCount, meanActualPrice).
+		BasePrice: meanActualPrice - pricePerRoom*meanRoomCount,
 	}, nil
 }
