@@ -16,6 +16,16 @@
 go run ./cmd/chapter03
 ```
 
+Команда также создаёт SVG-визуализации:
+
+```text
+visualizations/chapter03/regression-training.svg
+visualizations/chapter03/rmse-training.svg
+```
+
+- `regression-training.svg` показывает точки датасета, промежуточные линии SGD, финальную линию SGD и точную линию `OrdinaryLeastSquares`.
+- `rmse-training.svg` показывает, как меняется ошибка `RMSE` во время обучения.
+
 ## RMSE простыми словами
 
 `RMSE` расшифровывается как `Root Mean Square Error`, то есть корень из средней квадратичной ошибки.

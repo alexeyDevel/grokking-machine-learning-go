@@ -15,6 +15,10 @@ type TrainingResult struct {
 	// Errors - значения RMSE перед каждым шагом обновления модели.
 	// Errors are RMSE values before each model update step.
 	Errors []float64
+
+	// Snapshots - промежуточные версии модели для визуализации обучения.
+	// Snapshots are intermediate model versions for training visualization.
+	Snapshots []Model
 }
 
 // LinearRegression обучает модель линейной регрессии через stochastic gradient descent.
@@ -22,6 +26,12 @@ type TrainingResult struct {
 // LinearRegression trains a linear regression model with stochastic gradient descent.
 // On each epoch, it picks a random point and applies SquareTrick.
 func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *rand.Rand) (TrainingResult, error) {
+	return LinearRegressionWithSnapshots(dataset, learningRate, epochs, rng, 0)
+}
+
+// LinearRegressionWithSnapshots обучает модель и сохраняет промежуточные прямые каждые snapshotEvery эпох.
+// LinearRegressionWithSnapshots trains a model and stores intermediate lines every snapshotEvery epochs.
+func LinearRegressionWithSnapshots(dataset Dataset, learningRate float64, epochs int, rng *rand.Rand, snapshotEvery int) (TrainingResult, error) {
 	if len(dataset.RoomCounts) == 0 {
 		return TrainingResult{}, errors.New("room counts must not be empty")
 	}
@@ -30,6 +40,9 @@ func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *ra
 	}
 	if epochs < 0 {
 		return TrainingResult{}, errors.New("epochs must not be negative")
+	}
+	if snapshotEvery < 0 {
+		return TrainingResult{}, errors.New("snapshotEvery must not be negative")
 	}
 	if rng == nil {
 		// Если генератор не передали, создаём фиксированный, чтобы результат был повторяемым.
@@ -50,8 +63,9 @@ func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *ra
 	// errorsByEpoch заранее получает ёмкость epochs, потому что мы добавим одну ошибку на эпоху.
 	// errorsByEpoch gets capacity epochs in advance because we append one error per epoch.
 	errorsByEpoch := make([]float64, 0, epochs)
+	snapshots := []Model{model}
 
-	for range epochs {
+	for epoch := range epochs {
 		// Считаем ошибку всей модели на всех точках до очередного обновления.
 		// Calculate the model error on all points before the next update.
 		currentRMSE, err := RMSE(dataset.ActualPrices, model.PredictAll(dataset.RoomCounts))
@@ -72,10 +86,19 @@ func LinearRegression(dataset Dataset, learningRate float64, epochs int, rng *ra
 			dataset.ActualPrices[i],
 			learningRate,
 		)
+
+		if snapshotEvery > 0 && (epoch+1)%snapshotEvery == 0 {
+			snapshots = append(snapshots, model)
+		}
+	}
+
+	if len(snapshots) == 0 || snapshots[len(snapshots)-1] != model {
+		snapshots = append(snapshots, model)
 	}
 
 	return TrainingResult{
-		Model:  model,
-		Errors: errorsByEpoch,
+		Model:     model,
+		Errors:    errorsByEpoch,
+		Snapshots: snapshots,
 	}, nil
 }
