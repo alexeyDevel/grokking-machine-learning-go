@@ -1,10 +1,13 @@
 package chapter03
 
+// Dataset хранит признаки и правильные ответы для задачи линейной регрессии.
 type Dataset struct {
 	Features []float64
 	Labels   []float64
 }
 
+// HousingDataset возвращает учебный набор данных из главы:
+// количество комнат в доме и соответствующая цена.
 func HousingDataset() Dataset {
 	return Dataset{
 		Features: []float64{1, 2, 3, 5, 6, 7},

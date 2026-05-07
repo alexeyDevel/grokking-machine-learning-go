@@ -2,6 +2,8 @@ package chapter03
 
 import "errors"
 
+// OrdinaryLeastSquares находит оптимальную прямую по закрытой формуле.
+// Это аналог результата, который notebook получает через scikit-learn LinearRegression.
 func OrdinaryLeastSquares(dataset Dataset) (Model, error) {
 	if len(dataset.Features) == 0 {
 		return Model{}, errors.New("features must not be empty")
