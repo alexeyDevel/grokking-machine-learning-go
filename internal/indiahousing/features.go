@@ -110,7 +110,7 @@ func calculateStats(values []float64) featureStats {
 		diff := value - mean
 		squaredDiffs += diff * diff
 	}
-	std := math.Sqrt(squaredDiffs / float64(len(values)))
+	std := math.Sqrt(squaredDiffs / float64(len(values)-1))
 	if std == 0 {
 		std = 1
 	}
