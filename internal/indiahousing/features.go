@@ -11,16 +11,14 @@ type featureStats struct {
 	Std  float64
 }
 
-// Encoder превращает House в числовые признаки для линейной модели.
-// Encoder converts House values into numeric features for a linear model.
+// Encoder превращает строки Hyderabad.csv в числовые признаки для линейной модели.
+// Encoder converts Hyderabad.csv rows into numeric features for a linear model.
 type Encoder struct {
-	Cities      []string
-	Furnishings []string
+	Locations []string
+	Amenities []string
 
-	AreaStats     featureStats
-	BedroomStats  featureStats
-	BathroomStats featureStats
-	AgeStats      featureStats
+	AreaStats    featureStats
+	BedroomStats featureStats
 }
 
 // NewEncoder создаёт кодировщик по обучающему набору данных.
@@ -30,63 +28,62 @@ func NewEncoder(houses []House) (Encoder, error) {
 		return Encoder{}, fmt.Errorf("houses must not be empty")
 	}
 
-	citySet := map[string]bool{}
-	furnishingSet := map[string]bool{}
+	locationSet := map[string]bool{}
+	amenitySeen := map[string]bool{}
+	amenities := []string{}
 	areas := make([]float64, len(houses))
 	bedrooms := make([]float64, len(houses))
-	bathrooms := make([]float64, len(houses))
-	ages := make([]float64, len(houses))
 
 	for i, house := range houses {
-		citySet[house.City] = true
-		furnishingSet[house.Furnished] = true
+		locationSet[house.Location] = true
 		areas[i] = house.AreaSqFt
 		bedrooms[i] = house.Bedrooms
-		bathrooms[i] = house.Bathrooms
-		ages[i] = house.AgeYears
+
+		for amenity := range house.Amenities {
+			if !amenitySeen[amenity] {
+				amenitySeen[amenity] = true
+				amenities = append(amenities, amenity)
+			}
+		}
 	}
+	sort.Strings(amenities)
 
 	return Encoder{
-		Cities:        sortedKeys(citySet),
-		Furnishings:   sortedKeys(furnishingSet),
-		AreaStats:     calculateStats(areas),
-		BedroomStats:  calculateStats(bedrooms),
-		BathroomStats: calculateStats(bathrooms),
-		AgeStats:      calculateStats(ages),
+		Locations:    sortedKeys(locationSet),
+		Amenities:    amenities,
+		AreaStats:    calculateStats(areas),
+		BedroomStats: calculateStats(bedrooms),
 	}, nil
 }
 
 // FeatureNames возвращает названия признаков в том же порядке, что и Encode.
 // FeatureNames returns feature names in the same order as Encode.
 func (e Encoder) FeatureNames() []string {
-	names := []string{"area_sqft", "bedrooms", "bathrooms", "age_years", "near_metro"}
-	for _, city := range e.Cities[1:] {
-		names = append(names, "city_"+city)
+	names := []string{"Area", "No. of Bedrooms"}
+	for _, amenity := range e.Amenities {
+		names = append(names, amenity)
 	}
-	for _, furnishing := range e.Furnishings[1:] {
-		names = append(names, "furnished_"+furnishing)
+	for _, location := range e.Locations[1:] {
+		names = append(names, "Location_"+location)
 	}
 	return names
 }
 
-// Encode превращает один дом в числовой вектор признаков.
-// Encode converts one house into a numeric feature vector.
+// Encode превращает один объект недвижимости в числовой вектор признаков.
+// Encode converts one property into a numeric feature vector.
 func (e Encoder) Encode(house House) []float64 {
 	features := []float64{
 		normalize(house.AreaSqFt, e.AreaStats),
 		normalize(house.Bedrooms, e.BedroomStats),
-		normalize(house.Bathrooms, e.BathroomStats),
-		normalize(house.AgeYears, e.AgeStats),
-		boolAsFloat(house.NearMetro),
 	}
 
-	// Первую категорию пропускаем: она становится базовой.
-	// Skip the first category: it becomes the baseline.
-	for _, city := range e.Cities[1:] {
-		features = append(features, boolAsFloat(house.City == city))
+	for _, amenity := range e.Amenities {
+		features = append(features, house.Amenities[amenity])
 	}
-	for _, furnishing := range e.Furnishings[1:] {
-		features = append(features, boolAsFloat(house.Furnished == furnishing))
+	// Первую location пропускаем: она становится базовой категорией.
+	// Skip the first location: it becomes the baseline category.
+	for _, location := range e.Locations[1:] {
+		features = append(features, boolAsFloat(house.Location == location))
 	}
 
 	return features

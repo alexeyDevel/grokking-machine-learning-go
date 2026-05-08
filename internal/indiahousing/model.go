@@ -11,17 +11,17 @@ type LinearModel struct {
 	Bias         float64
 }
 
-// Predict оценивает цену жилья в лакхах рупий.
-// Predict estimates the house price in lakh rupees.
+// Predict оценивает цену жилья в рупиях.
+// Predict estimates the house price in rupees.
 func (m LinearModel) Predict(house House) float64 {
 	features := m.Encoder.Encode(house)
 
-	priceLakhs := m.Bias
+	priceRupees := m.Bias
 	for i, featureValue := range features {
-		priceLakhs += m.Weights[i] * featureValue
+		priceRupees += m.Weights[i] * featureValue
 	}
 
-	return priceLakhs
+	return priceRupees
 }
 
 // ExplainTopWeights показывает признаки с самым большим влиянием на прогноз.

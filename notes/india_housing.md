@@ -1,48 +1,40 @@
 # India Housing
 
-Этот пример показывает Go-аналог подхода `Turi Create` для прогнозирования цен на жильё:
+Этот пример повторяет логику notebook `House_price_predictions.ipynb` из 3 главы,
+но на Go:
 
 1. Загрузить CSV.
 2. Разделить данные на `train` и `test`.
-3. Закодировать числовые и категориальные признаки.
-4. Обучить линейную регрессию.
-5. Посчитать `RMSE` и `MAE`.
-6. Сделать прогноз для новой квартиры.
+3. Масштабировать числовые признаки `Area` и `No. of Bedrooms`.
+4. Закодировать `Location` через one-hot признаки.
+5. Обучить `LinearRegression` через least squares.
+6. Посчитать `RMSE` и `MAE`.
+7. Сделать прогноз для новой квартиры.
 
 ## Важно про данные
 
-Файл `data/india_housing_sample.csv` - учебный мини-датасет. Он нужен, чтобы отработать ML-пайплайн на Go без Python и без Turi Create.
+Файл `internal/indiahousing/Hyderabad.csv` - тот же формат данных, который
+используется в notebook:
 
-Для реального прогноза этот CSV нужно заменить на настоящий датасет объявлений, например с колонками:
+- `Price` - цена в рупиях, это целевая переменная.
+- `Area` - площадь.
+- `Location` - район, который превращается в one-hot признаки.
+- `No. of Bedrooms` - количество спален.
+- остальные колонки - бинарные признаки удобств: `Gymnasium`, `SwimmingPool`,
+  `LiftAvailable` и так далее.
 
-- `city`
-- `area_sqft`
-- `bedrooms`
-- `bathrooms`
-- `age_years`
-- `near_metro`
-- `furnished`
-- `price_lakhs`
+## Почему это похоже на notebook
 
-## Почему это похоже на Turi Create
+В Python-версии используются `pandas`, `numpy` и `sklearn.LinearRegression`.
+В Go-версии эти шаги разложены по файлам:
 
-В Turi Create код часто выглядит как высокоуровневый pipeline:
+- `LoadCSV` читает таблицу как `pd.read_csv`.
+- `Encoder` делает scaling и one-hot encoding.
+- `TrainLinearRegression` решает задачу least squares через `gonum/mat` SVD.
+- `Evaluate` считает ошибку прогноза.
 
-```text
-load data -> split data -> train model -> evaluate -> predict
-```
-
-В Go мы делаем то же самое явно:
+Запуск:
 
 ```bash
 go run ./cmd/india_housing
 ```
-
-Здесь нет магии фреймворка, зато хорошо видно, что происходит:
-
-- `LoadCSV` читает таблицу.
-- `TrainTestSplit` отделяет тестовые данные.
-- `Encoder` превращает город и furnishing в числовые признаки.
-- `TrainLinearRegression` обучает веса модели.
-- `Evaluate` считает ошибку.
-

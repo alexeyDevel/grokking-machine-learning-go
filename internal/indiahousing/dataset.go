@@ -9,21 +9,20 @@ import (
 	"strconv"
 )
 
-// House хранит одну строку датасета с индийской недвижимостью.
-// House stores one row from the Indian housing dataset.
+const RupeesInLakh = 100000.0
+
+// House хранит одну строку Hyderabad.csv.
+// House stores one row from Hyderabad.csv.
 type House struct {
-	City       string
-	AreaSqFt   float64
-	Bedrooms   float64
-	Bathrooms  float64
-	AgeYears   float64
-	NearMetro  bool
-	Furnished  string
-	PriceLakhs float64
+	Location    string
+	AreaSqFt    float64
+	Bedrooms    float64
+	Amenities   map[string]float64
+	PriceRupees float64
 }
 
-// LoadCSV загружает данные о жилье из CSV-файла.
-// LoadCSV loads housing data from a CSV file.
+// LoadCSV загружает Hyderabad.csv так же, как pd.read_csv в notebook.
+// LoadCSV loads Hyderabad.csv similarly to pd.read_csv in the notebook.
 func LoadCSV(path string) ([]House, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -38,8 +37,16 @@ func LoadCSV(path string) ([]House, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(header) != 8 {
-		return nil, fmt.Errorf("expected 8 columns, got %d", len(header))
+	if len(header) < 4 {
+		return nil, fmt.Errorf("expected at least 4 columns, got %d", len(header))
+	}
+
+	columns := mapColumns(header)
+	requiredColumns := []string{"Price", "Area", "Location", "No. of Bedrooms"}
+	for _, column := range requiredColumns {
+		if _, ok := columns[column]; !ok {
+			return nil, fmt.Errorf("missing required column %q", column)
+		}
 	}
 
 	var houses []House
@@ -52,7 +59,7 @@ func LoadCSV(path string) ([]House, error) {
 			return nil, fmt.Errorf("read row %d: %w", rowNumber, err)
 		}
 
-		house, err := parseHouse(record)
+		house, err := parseHyderabadHouse(header, columns, record)
 		if err != nil {
 			return nil, fmt.Errorf("parse row %d: %w", rowNumber, err)
 		}
@@ -62,44 +69,50 @@ func LoadCSV(path string) ([]House, error) {
 	return houses, nil
 }
 
-func parseHouse(record []string) (House, error) {
-	if len(record) != 8 {
-		return House{}, fmt.Errorf("expected 8 values, got %d", len(record))
+func mapColumns(header []string) map[string]int {
+	columns := make(map[string]int, len(header))
+	for i, column := range header {
+		columns[column] = i
+	}
+	return columns
+}
+
+func parseHyderabadHouse(header []string, columns map[string]int, record []string) (House, error) {
+	if len(record) != len(header) {
+		return House{}, fmt.Errorf("expected %d values, got %d", len(header), len(record))
 	}
 
-	areaSqFt, err := strconv.ParseFloat(record[1], 64)
+	priceRupees, err := parseFloat(record[columns["Price"]])
 	if err != nil {
-		return House{}, err
+		return House{}, fmt.Errorf("price: %w", err)
 	}
-	bedrooms, err := strconv.ParseFloat(record[2], 64)
+	areaSqFt, err := parseFloat(record[columns["Area"]])
 	if err != nil {
-		return House{}, err
+		return House{}, fmt.Errorf("area: %w", err)
 	}
-	bathrooms, err := strconv.ParseFloat(record[3], 64)
+	bedrooms, err := parseFloat(record[columns["No. of Bedrooms"]])
 	if err != nil {
-		return House{}, err
+		return House{}, fmt.Errorf("bedrooms: %w", err)
 	}
-	ageYears, err := strconv.ParseFloat(record[4], 64)
-	if err != nil {
-		return House{}, err
-	}
-	nearMetro, err := strconv.ParseBool(record[5])
-	if err != nil {
-		return House{}, err
-	}
-	priceLakhs, err := strconv.ParseFloat(record[7], 64)
-	if err != nil {
-		return House{}, err
+
+	amenities := map[string]float64{}
+	for _, column := range header[4:] {
+		value, err := parseFloat(record[columns[column]])
+		if err != nil {
+			return House{}, fmt.Errorf("%s: %w", column, err)
+		}
+		amenities[column] = value
 	}
 
 	return House{
-		City:       record[0],
-		AreaSqFt:   areaSqFt,
-		Bedrooms:   bedrooms,
-		Bathrooms:  bathrooms,
-		AgeYears:   ageYears,
-		NearMetro:  nearMetro,
-		Furnished:  record[6],
-		PriceLakhs: priceLakhs,
+		Location:    record[columns["Location"]],
+		AreaSqFt:    areaSqFt,
+		Bedrooms:    bedrooms,
+		Amenities:   amenities,
+		PriceRupees: priceRupees,
 	}, nil
+}
+
+func parseFloat(value string) (float64, error) {
+	return strconv.ParseFloat(value, 64)
 }

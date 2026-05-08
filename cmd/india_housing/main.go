@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	houses, err := indiahousing.LoadCSV("data/india_housing_sample.csv")
+	houses, err := indiahousing.LoadCSV("internal/indiahousing/Hyderabad.csv")
 	if err != nil {
 		panic(err)
 	}
@@ -22,10 +22,7 @@ func main() {
 		panic(err)
 	}
 
-	model, err := indiahousing.TrainLinearRegression(train, indiahousing.TrainingOptions{
-		LearningRate: 0.03,
-		Epochs:       12000,
-	})
+	model, err := indiahousing.TrainLinearRegression(train)
 	if err != nil {
 		panic(err)
 	}
@@ -40,34 +37,37 @@ func main() {
 	}
 
 	example := indiahousing.House{
-		City:      "Bengaluru",
-		AreaSqFt:  1420,
-		Bedrooms:  3,
-		Bathrooms: 2,
-		AgeYears:  3,
-		NearMetro: true,
-		Furnished: "Semi",
+		Location: "Hitech City",
+		AreaSqFt: 1420,
+		Bedrooms: 3,
+		Amenities: map[string]float64{
+			"24X7Security":  1,
+			"CarParking":    1,
+			"Gymnasium":     1,
+			"LiftAvailable": 1,
+			"PowerBackup":   1,
+			"SwimmingPool":  1,
+		},
 	}
 	predictedPrice := model.Predict(example)
 
-	fmt.Println("India housing price prediction")
+	fmt.Println("Hyderabad housing price prediction")
 	fmt.Printf("rows: %d train / %d test\n\n", len(train), len(test))
 
-	fmt.Println("Metrics, lakhs INR")
+	fmt.Println("Metrics, INR")
 	fmt.Printf("train RMSE: %.2f, train MAE: %.2f\n", trainEvaluation.RMSE, trainEvaluation.MAE)
 	fmt.Printf("test  RMSE: %.2f, test  MAE: %.2f\n\n", testEvaluation.RMSE, testEvaluation.MAE)
 
 	fmt.Println("Example prediction")
-	fmt.Printf("%s, %.0f sqft, %.0f bedrooms, %.0f bathrooms, %.0f years old, metro=%t, furnished=%s\n",
-		example.City,
+	fmt.Printf("%s, %.0f sqft, %.0f bedrooms, amenities: gym=%t, pool=%t, parking=%t\n",
+		example.Location,
 		example.AreaSqFt,
 		example.Bedrooms,
-		example.Bathrooms,
-		example.AgeYears,
-		example.NearMetro,
-		example.Furnished,
+		example.Amenities["Gymnasium"] == 1,
+		example.Amenities["SwimmingPool"] == 1,
+		example.Amenities["CarParking"] == 1,
 	)
-	fmt.Printf("predicted price: %.2f lakhs INR\n\n", predictedPrice)
+	fmt.Printf("predicted price: %.2f INR, about %.2f lakhs INR\n\n", predictedPrice, predictedPrice/indiahousing.RupeesInLakh)
 
 	fmt.Println("Strongest learned weights")
 	for _, line := range model.ExplainTopWeights(8) {

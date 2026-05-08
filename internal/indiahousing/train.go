@@ -4,14 +4,9 @@ import (
 	"errors"
 	"math"
 	"math/rand"
-)
 
-// TrainingOptions хранит настройки обучения.
-// TrainingOptions stores training settings.
-type TrainingOptions struct {
-	LearningRate float64
-	Epochs       int
-}
+	"gonum.org/v1/gonum/mat"
+)
 
 // Evaluation хранит метрики качества модели.
 // Evaluation stores model quality metrics.
@@ -20,8 +15,8 @@ type Evaluation struct {
 	MAE  float64
 }
 
-// TrainTestSplit делит данные на train и test, как это делал бы ML-фреймворк.
-// TrainTestSplit splits data into train and test sets, like an ML framework would.
+// TrainTestSplit делит данные на train и test.
+// TrainTestSplit splits data into train and test sets.
 func TrainTestSplit(houses []House, testRatio float64, rng *rand.Rand) ([]House, []House, error) {
 	if len(houses) < 2 {
 		return nil, nil, errors.New("need at least two houses")
@@ -48,17 +43,13 @@ func TrainTestSplit(houses []House, testRatio float64, rng *rand.Rand) ([]House,
 	return train, test, nil
 }
 
-// TrainLinearRegression обучает линейную регрессию через batch gradient descent.
-// TrainLinearRegression trains linear regression with batch gradient descent.
-func TrainLinearRegression(houses []House, options TrainingOptions) (LinearModel, error) {
+// TrainLinearRegression обучает линейную регрессию как sklearn.LinearRegression.
+// Вместо итераций мы решаем задачу least squares через SVD.
+// TrainLinearRegression trains linear regression like sklearn.LinearRegression.
+// Instead of iterations, it solves the least-squares problem with SVD.
+func TrainLinearRegression(houses []House) (LinearModel, error) {
 	if len(houses) == 0 {
 		return LinearModel{}, errors.New("houses must not be empty")
-	}
-	if options.LearningRate <= 0 {
-		return LinearModel{}, errors.New("learning rate must be positive")
-	}
-	if options.Epochs <= 0 {
-		return LinearModel{}, errors.New("epochs must be positive")
 	}
 
 	encoder, err := NewEncoder(houses)
@@ -73,26 +64,35 @@ func TrainLinearRegression(houses []House, options TrainingOptions) (LinearModel
 		Weights:      make([]float64, len(featureNames)),
 	}
 
-	for range options.Epochs {
-		weightGradients := make([]float64, len(model.Weights))
-		var biasGradient float64
+	rowCount := len(houses)
+	columnCount := len(featureNames) + 1
+	designMatrix := mat.NewDense(rowCount, columnCount, nil)
+	targetPrices := mat.NewDense(rowCount, 1, nil)
 
-		for _, house := range houses {
-			features := encoder.Encode(house)
-			predictedPrice := model.Predict(house)
-			predictionError := predictedPrice - house.PriceLakhs
+	for rowIndex, house := range houses {
+		features := encoder.Encode(house)
 
-			biasGradient += predictionError
-			for i, featureValue := range features {
-				weightGradients[i] += predictionError * featureValue
-			}
+		// Первый столбец равен 1: так модель учит intercept/bias.
+		// The first column is 1: this lets the model learn the intercept/bias.
+		designMatrix.Set(rowIndex, 0, 1)
+		for featureIndex, featureValue := range features {
+			designMatrix.Set(rowIndex, featureIndex+1, featureValue)
 		}
+		targetPrices.Set(rowIndex, 0, house.PriceRupees)
+	}
 
-		n := float64(len(houses))
-		model.Bias -= options.LearningRate * biasGradient / n
-		for i := range model.Weights {
-			model.Weights[i] -= options.LearningRate * weightGradients[i] / n
-		}
+	var svd mat.SVD
+	if ok := svd.Factorize(designMatrix, mat.SVDThin); !ok {
+		return LinearModel{}, errors.New("could not factorize feature matrix")
+	}
+
+	rank := svd.Rank(1e-12)
+	coefficients := mat.NewDense(columnCount, 1, nil)
+	svd.SolveTo(coefficients, targetPrices, rank)
+
+	model.Bias = coefficients.At(0, 0)
+	for featureIndex := range model.Weights {
+		model.Weights[featureIndex] = coefficients.At(featureIndex+1, 0)
 	}
 
 	return model, nil
@@ -108,7 +108,7 @@ func Evaluate(model LinearModel, houses []House) (Evaluation, error) {
 	var sumSquares float64
 	var sumAbsolute float64
 	for _, house := range houses {
-		predictionError := house.PriceLakhs - model.Predict(house)
+		predictionError := house.PriceRupees - model.Predict(house)
 		sumSquares += predictionError * predictionError
 		if predictionError < 0 {
 			predictionError = -predictionError
